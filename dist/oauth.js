@@ -113,7 +113,13 @@ class DiscogsOAuth {
                 return (0, crypto_1.createHmac)('sha1', key).update(baseString).digest('base64');
             },
         });
-        const authObj = oAuth.authorize({ method: requestMethod, url: requestUrl }, { key: this.auth.token ?? '', secret: this.auth.tokenSecret ?? '' });
+        // Only pass a token when we actually have one. During the request-token
+        // step there is no token yet; sending an empty `oauth_token` makes Discogs
+        // reject the request with a 401.
+        const token = this.auth.token
+            ? { key: this.auth.token, secret: this.auth.tokenSecret ?? '' }
+            : undefined;
+        const authObj = oAuth.authorize({ method: requestMethod, url: requestUrl }, token);
         return oAuth.toHeader(authObj).Authorization;
     }
 }
