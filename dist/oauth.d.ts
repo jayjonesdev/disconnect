@@ -20,10 +20,8 @@ export declare class DiscogsOAuth {
      */
     getRequestToken(consumerKey: string, consumerSecret: string, callbackUrl: string, callback?: AuthCallback): this;
     /**
-     * Get an OAuth access token from Discogs.
-     *
-     * The Discogs API documents this as a POST request (the original library used
-     * GET); POST is the correct and future-safe approach.
+     * Get an OAuth access token from Discogs using the verifier returned after
+     * the user authorizes the request token.
      */
     getAccessToken(verifier: string, callback?: AuthCallback): this;
     /**

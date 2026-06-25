@@ -65,20 +65,18 @@ class DiscogsOAuth {
         return this;
     }
     /**
-     * Get an OAuth access token from Discogs.
-     *
-     * The Discogs API documents this as a POST request (the original library used
-     * GET); POST is the correct and future-safe approach.
+     * Get an OAuth access token from Discogs using the verifier returned after
+     * the user authorizes the request token.
      */
     getAccessToken(verifier, callback) {
         const auth = this.auth;
-        new client_js_1.DiscogsClient(auth).post({
+        new client_js_1.DiscogsClient(auth).get({
             url: this.config.accessTokenUrl +
                 '?oauth_verifier=' +
                 percentEncode(verifier),
             queue: false,
             json: false,
-        }, null, (err, data) => {
+        }, (err, data) => {
             if (!err && data) {
                 const parsed = new URLSearchParams(data);
                 auth.token = parsed.get('oauth_token') ?? undefined;
