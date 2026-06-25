@@ -135,17 +135,24 @@ export class DiscogsOAuth {
    * Build the OAuth HTTP Authorization header content.
    */
   toHeader(requestMethod: string, requestUrl: string): string {
-    const oAuth = new OAuth({
+    const options: OAuth.Options = {
       consumer: {
         key: this.auth.consumerKey ?? '',
         secret: this.auth.consumerSecret ?? '',
       },
       signature_method: this.config.signatureMethod,
       version: this.config.version,
-      hash_function(baseString: string, key: string): string {
-        return createHmac('sha1', key).update(baseString).digest('base64');
-      },
-    });
+    };
+    // Only wire in an HMAC hash function for HMAC-SHA1. For PLAINTEXT,
+    // oauth-1.0a uses the signing key as the signature itself — passing a
+    // hash_function here would override that and produce an HMAC signature
+    // while still advertising signature_method=PLAINTEXT, which Discogs
+    // rejects with a 401.
+    if (this.config.signatureMethod === 'HMAC-SHA1') {
+      options.hash_function = (baseString: string, key: string): string =>
+        createHmac('sha1', key).update(baseString).digest('base64');
+    }
+    const oAuth = new OAuth(options);
     // Only pass a token when we actually have one. During the request-token
     // step there is no token yet; sending an empty `oauth_token` makes Discogs
     // reject the request with a 401.
