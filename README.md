@@ -2,25 +2,47 @@
 
 `disconnect` is a [Node.js](http://www.nodejs.org) client library that connects with the [Discogs.com API v2.0](http://www.discogs.com/developers/).
 
-[![Dependency Status](https://david-dm.org/bartve/disconnect.png)](https://david-dm.org/bartve/disconnect)
+> **This is a TypeScript port** of the original [bartve/disconnect](https://github.com/bartve/disconnect). The whole library has been rewritten in TypeScript and ships full type declarations, and the API surface has been brought up to date with endpoints Discogs added since the original was last maintained (Feb 2021). The runtime API is backwards compatible: callbacks and promises both still work.
 
 ## Features
 
   * Covers all API endpoints
+  * Written in TypeScript — ships `.d.ts` declarations for full editor/type support
   * Supports [pagination](http://www.discogs.com/developers/#page:home,header:home-pagination), [rate limiting](http://www.discogs.com/developers/#page:home,header:home-rate-limiting), etc.
   * All database, marketplace and user functions implement a standard `function(err, data, rateLimit)` format for the callback or return a 
     native JS [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) when no callback is provided
   * Easy access to protected endpoints with `Discogs Auth`
   * Includes OAuth 1.0a tools. Just plug in your consumer key and secret and do the OAuth dance
   * API functions grouped in their own namespace for easy access and isolation
-  
-## Todo
 
-  * Add more tests
+## What's new in this port
+
+  * Full TypeScript rewrite with exported types (`DiscogsCallback`, `RequestOptions`, `CurrencyAbbr`, response shapes, etc.)
+  * `database.getCommunityReleaseRating(release)` — community average rating + count (`GET /releases/{id}/rating`)
+  * `database.getReleaseStats(release)` — have/want counts (`GET /releases/{id}/stats`)
+  * `database.getRelease(release, currAbbr?)` — optional marketplace currency
+  * `database.getMasterVersions(master, params?)` — typed filter params (format, label, released, country)
+  * `marketplace.getReleaseStatistics(release, currAbbr?)` — community marketplace stats
+  * `user.editProfile(username, data)` — update the authenticated user's profile
+  * `collection.getCustomFields(username)`, `collection.editInstanceField(...)`, `collection.getValue(username)`
+  * `inventoryExport()` namespace — request/list/get/download inventory exports
+  * `inventoryUpload()` namespace — add/change/delete via CSV upload, list/get uploads
+  * OAuth access-token exchange now uses `POST` (per current Discogs docs); HMAC-SHA1 signing wired in
+  * `Queue` gains sliding-window helpers (`canCall()` / `recordCall()`) for the moving-average rate limit
 
 ## Installation
 
-[![NPM](https://nodei.co/npm/disconnect.png?downloads=true)](https://nodei.co/npm/disconnect/)
+This port is distributed as source. Clone it, install dependencies and build:
+
+```bash
+git clone https://github.com/jayjonesdev/disconnect.git
+cd disconnect
+npm install
+npm run build   # compiles src/ -> dist/
+npm test        # run the test suite
+```
+
+The compiled entry point is `dist/index.js` with type declarations in `dist/index.d.ts`.
 
 ## Structure
 The global structure of `disconnect` looks as follows:
@@ -31,6 +53,8 @@ require('disconnect') -> new Client() -> oauth()
                                       -> user() -> collection()
                                                 -> wantlist()
                                                 -> list()
+                                      -> inventoryExport()
+                                      -> inventoryUpload()
                       -> util
 ```
 
@@ -43,6 +67,16 @@ Here are some basic usage examples that connect with the public API. Error handl
 
 ```javascript
 var Discogs = require('disconnect').Client;
+```
+
+In TypeScript / ESM you can use named imports and the exported types:
+
+```typescript
+import { DiscogsClient, type ReleaseStatsResponse } from 'disconnect';
+
+const db = new DiscogsClient().database();
+const stats = await db.getReleaseStats<ReleaseStatsResponse>(176126);
+console.log(stats.num_have, stats.num_want);
 ```
 #### Go!
 

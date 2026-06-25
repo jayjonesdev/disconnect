@@ -1,3 +1,15 @@
+2.0.0 / 2026-06-24
+==================
+  * Full TypeScript rewrite; ships type declarations (`dist/*.d.ts`)
+  * Replaced the deprecated `querystring` module with `URLSearchParams`
+  * New database methods: `getCommunityReleaseRating`, `getReleaseStats`; `getRelease` accepts an optional currency; typed `getMasterVersions` filter params
+  * New marketplace method: `getReleaseStatistics`
+  * New user method: `editProfile`
+  * New collection methods: `getCustomFields`, `editInstanceField`, `getValue`
+  * New `inventoryExport()` and `inventoryUpload()` namespaces
+  * OAuth access-token exchange now uses POST; HMAC-SHA1 signing supported
+  * `Queue` gains sliding-window helpers (`canCall` / `recordCall`)
+
 1.2.2 / 2021-02-04
 ==================
   * Fixed accept headers for non-json data
