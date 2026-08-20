@@ -91,14 +91,12 @@ export class DiscogsOAuth {
   }
 
   /**
-   * Get an OAuth access token from Discogs.
-   *
-   * The Discogs API documents this as a POST request (the original library used
-   * GET); POST is the correct and future-safe approach.
+   * Get an OAuth access token from Discogs using the verifier returned after
+   * the user authorizes the request token.
    */
   getAccessToken(verifier: string, callback?: AuthCallback): this {
     const auth = this.auth;
-    new DiscogsClient(auth).post(
+    new DiscogsClient(auth).get(
       {
         url:
           this.config.accessTokenUrl +
@@ -107,7 +105,6 @@ export class DiscogsOAuth {
         queue: false,
         json: false,
       },
-      null,
       (err, data) => {
         if (!err && data) {
           const parsed = new URLSearchParams(data as string);
@@ -135,20 +132,33 @@ export class DiscogsOAuth {
    * Build the OAuth HTTP Authorization header content.
    */
   toHeader(requestMethod: string, requestUrl: string): string {
-    const oAuth = new OAuth({
+    const options: OAuth.Options = {
       consumer: {
         key: this.auth.consumerKey ?? '',
         secret: this.auth.consumerSecret ?? '',
       },
       signature_method: this.config.signatureMethod,
       version: this.config.version,
-      hash_function(baseString: string, key: string): string {
-        return createHmac('sha1', key).update(baseString).digest('base64');
-      },
-    });
+    };
+    // Only wire in an HMAC hash function for HMAC-SHA1. For PLAINTEXT,
+    // oauth-1.0a uses the signing key as the signature itself — passing a
+    // hash_function here would override that and produce an HMAC signature
+    // while still advertising signature_method=PLAINTEXT, which Discogs
+    // rejects with a 401.
+    if (this.config.signatureMethod === 'HMAC-SHA1') {
+      options.hash_function = (baseString: string, key: string): string =>
+        createHmac('sha1', key).update(baseString).digest('base64');
+    }
+    const oAuth = new OAuth(options);
+    // Only pass a token when we actually have one. During the request-token
+    // step there is no token yet; sending an empty `oauth_token` makes Discogs
+    // reject the request with a 401.
+    const token = this.auth.token
+      ? { key: this.auth.token, secret: this.auth.tokenSecret ?? '' }
+      : undefined;
     const authObj = oAuth.authorize(
       { method: requestMethod, url: requestUrl },
-      { key: this.auth.token ?? '', secret: this.auth.tokenSecret ?? '' }
+      token
     );
     return oAuth.toHeader(authObj).Authorization;
   }
